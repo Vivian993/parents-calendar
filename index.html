@@ -168,10 +168,11 @@
     color:var(--gold-text);
     font-weight:800;
     margin-top:1px;
-    line-height:1.1;
-    white-space:nowrap;
+    line-height:1.15;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
     overflow:hidden;
-    text-overflow:ellipsis;
   }
   .events-wrap{
     display:flex;
@@ -184,15 +185,21 @@
     font-size:clamp(.56rem,1.35vh,.78rem);
     font-weight:800;
     line-height:1.18;
-    white-space:nowrap;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
     overflow:hidden;
-    text-overflow:ellipsis;
   }
   .evt-line.cat-hospital{color:var(--hospital-text);}
   .evt-line.cat-hair{color:var(--hair-text);}
   .evt-line.cat-bill{color:var(--bill-text);}
   .evt-line.cat-other{color:var(--other-text);}
   .evt-more{font-size:clamp(.53rem,1.2vh,.68rem);color:var(--ink-soft);font-weight:700;}
+  .day-cell.selected{
+    outline:3px solid var(--plum);
+    outline-offset:-3px;
+    box-shadow:0 0 0 5px rgba(122,71,99,.12) inset;
+  }
 
   /* Modal / bottom sheet */
   .overlay{
@@ -614,6 +621,7 @@ const today=new Date();
 
 async function render(){
   if(!dataLoaded) await loadAllData();
+  selectedCellEl=null;
   document.getElementById('monthLabel').textContent=`${viewY}年${String(viewM).padStart(2,'0')}月`;
   const grid=document.getElementById('grid');
   grid.innerHTML='';
@@ -716,6 +724,11 @@ function attachLongPress(el,y,m,d){
 
 /* ============ 日期詳情 / 新增表單 ============ */
 let currentDay={y:null,m:null,d:null};
+let selectedCellEl=null;
+
+function clearSelectedCell(){
+  if(selectedCellEl){ selectedCellEl.classList.remove('selected'); selectedCellEl=null; }
+}
 
 function updateIconPreview(){
   const cat=document.getElementById('catSelect').value;
@@ -729,6 +742,9 @@ document.getElementById('catSelect').addEventListener('change',updateIconPreview
 
 async function openDaySheet(y,m,d){
   currentDay={y,m,d};
+  clearSelectedCell();
+  const cellEl=findCellEl(y,m,d);
+  if(cellEl){ cellEl.classList.add('selected'); selectedCellEl=cellEl; }
   const wd=['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
   const lunar=solar2lunar(y,m,d);
   document.getElementById('dayTitle').textContent=`${y}年${m}月${d}日（星期${wd}）`;
@@ -768,9 +784,11 @@ function refreshExistingList(){
 
 document.getElementById('closeDaySheet').addEventListener('click',()=>{
   document.getElementById('dayOverlay').classList.add('hidden');
+  clearSelectedCell();
 });
 document.getElementById('cancelAddBtn').addEventListener('click',()=>{
   document.getElementById('dayOverlay').classList.add('hidden');
+  clearSelectedCell();
 });
 
 document.getElementById('saveEventBtn').addEventListener('click',async()=>{
@@ -788,6 +806,7 @@ document.getElementById('saveEventBtn').addEventListener('click',async()=>{
   if(saved) scheduleForDate(y,m,d);
   if(saved){
     document.getElementById('dayOverlay').classList.add('hidden');
+    clearSelectedCell();
   }
   showToast(saved?'已新增，前一天會自動通知':'新增失敗，請稍後再試');
 });
