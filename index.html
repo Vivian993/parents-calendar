@@ -200,6 +200,10 @@
     outline-offset:-3px;
     box-shadow:0 0 0 5px rgba(122,71,99,.12) inset;
   }
+  .day-cell.touch-active{
+    outline:3px solid var(--sage);
+    outline-offset:-3px;
+  }
 
   /* Modal / bottom sheet */
   .overlay{
@@ -447,7 +451,7 @@ function dayCn(d){
   return N2[Math.floor(d/10)]+N1[d%10];
 }
 
-/* ============ 台灣國定假日（2025 / 2026，可自行擴充其他年份） ============ */
+/* ============ 台灣國定假日（2025 / 2026 為精確版；其他年份自動計算，含農曆節日） ============ */
 const HOLIDAYS={
 '2025-1-1':'元旦','2025-1-28':'除夕','2025-1-29':'春節初一','2025-1-30':'春節初二','2025-1-31':'春節初三',
 '2025-2-28':'和平紀念日','2025-4-3':'兒童節調整','2025-4-4':'兒童節','2025-4-5':'清明節',
@@ -460,6 +464,44 @@ const HOLIDAYS={
 '2026-9-25':'中秋節','2026-9-28':'教師節','2026-10-9':'國慶日補假','2026-10-10':'國慶日',
 '2026-10-25':'台灣光復節','2026-10-26':'光復節補假','2026-12-25':'行憲紀念日'
 };
+// 2025、2026 以外的年份，政府尚未（或本表尚未更新）公告確切補假日，
+// 這裡用固定國曆日期＋農曆節日（春節／端午／中秋）自動算出基本假日，
+// 讓 2027 年以後的月曆也看得到節日；補假調整日不在此自動範圍內。
+const FIXED_SOLAR_HOLIDAYS=[
+  [1,1,'元旦'],[2,28,'和平紀念日'],[4,4,'兒童節'],[4,5,'清明節'],[5,1,'勞動節'],
+  [9,28,'教師節'],[10,10,'國慶日'],[10,25,'台灣光復節'],[12,25,'行憲紀念日']
+];
+const holidaysCache={};
+function computeGenericHolidays(year){
+  const list={};
+  FIXED_SOLAR_HOLIDAYS.forEach(([m,d,name])=>{ list[`${year}-${m}-${d}`]=name; });
+  for(let m=1;m<=12;m++){
+    const daysInM=new Date(year,m,0).getDate();
+    for(let d=1;d<=daysInM;d++){
+      const l=solar2lunar(year,m,d);
+      if(!l||l.isLeap) continue;
+      if(l.lMonth===1&&l.lDay===1){
+        list[`${year}-${m}-${d}`]='春節初一';
+        const prev=new Date(year,m-1,d-1);
+        list[`${prev.getFullYear()}-${prev.getMonth()+1}-${prev.getDate()}`]='除夕';
+        const d2=new Date(year,m-1,d+1);
+        list[`${d2.getFullYear()}-${d2.getMonth()+1}-${d2.getDate()}`]='春節初二';
+        const d3=new Date(year,m-1,d+2);
+        list[`${d3.getFullYear()}-${d3.getMonth()+1}-${d3.getDate()}`]='春節初三';
+      }
+      if(l.lMonth===5&&l.lDay===5) list[`${year}-${m}-${d}`]='端午節';
+      if(l.lMonth===8&&l.lDay===15) list[`${year}-${m}-${d}`]='中秋節';
+    }
+  }
+  return list;
+}
+function getHoliday(y,m,d){
+  const key=`${y}-${m}-${d}`;
+  if(HOLIDAYS[key]) return HOLIDAYS[key];
+  if(y===2025||y===2026) return null;
+  if(!holidaysCache[y]) holidaysCache[y]=computeGenericHolidays(y);
+  return holidaysCache[y][key]||null;
+}
 
 /* ============ 類別設定 ============ */
 const CATS={
@@ -649,7 +691,7 @@ async function render(){
     if(dow===0) cell.classList.add('weekend-sun');
     if(dow===6) cell.classList.add('weekend-sat');
     const key=dKey(c.y,c.m,c.d);
-    const hol=HOLIDAYS[key];
+    const hol=getHoliday(c.y,c.m,c.d);
     if(hol) cell.classList.add('holiday');
     if(!c.other && c.y===today.getFullYear() && c.m===today.getMonth()+1 && c.d===today.getDate()){
       cell.classList.add('today');
@@ -704,9 +746,13 @@ function attachLongPress(el,y,m,d){
   const THRESHOLD=480;
   const start=(x,y0)=>{
     moved=false; startX=x; startY=y0;
+    el.classList.add('touch-active');
     timer=setTimeout(()=>{ if(!moved) openDaySheet(y,m,d); },THRESHOLD);
   };
-  const cancel=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
+  const cancel=()=>{
+    if(timer){ clearTimeout(timer); timer=null; }
+    el.classList.remove('touch-active');
+  };
   el.addEventListener('touchstart',e=>{ const t=e.touches[0]; start(t.clientX,t.clientY); },{passive:true});
   el.addEventListener('touchmove',e=>{
     const t=e.touches[0];
