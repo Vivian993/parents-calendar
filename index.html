@@ -175,26 +175,24 @@
   }
   .events-wrap{
     display:flex;
-    flex-direction:row;
-    flex-wrap:wrap;
-    gap:3px;
+    flex-direction:column;
+    gap:1px;
     margin-top:3px;
     overflow:hidden;
   }
-  .evt-chip{
-    font-size:clamp(.85rem,2.1vh,1.15rem);
-    line-height:1;
-    border-radius:7px;
-    padding:2px 4px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
+  .evt-line{
+    font-size:clamp(.56rem,1.35vh,.78rem);
+    font-weight:800;
+    line-height:1.18;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
-  .evt-chip.cat-hospital{background:var(--hospital-bg);}
-  .evt-chip.cat-hair{background:var(--hair-bg);}
-  .evt-chip.cat-bill{background:var(--bill-bg);}
-  .evt-chip.cat-other{background:var(--other-bg);}
-  .evt-more{font-size:clamp(.55rem,1.3vh,.7rem);color:var(--ink-soft);font-weight:700;align-self:center;}
+  .evt-line.cat-hospital{color:var(--hospital-text);}
+  .evt-line.cat-hair{color:var(--hair-text);}
+  .evt-line.cat-bill{color:var(--bill-text);}
+  .evt-line.cat-other{color:var(--other-text);}
+  .evt-more{font-size:clamp(.53rem,1.2vh,.68rem);color:var(--ink-soft);font-weight:700;}
 
   /* Modal / bottom sheet */
   .overlay{
@@ -672,19 +670,18 @@ function renderEventsIntoCell(cell,events){
   if(!slot) return;
   slot.innerHTML='';
   if(!events || !events.length) return;
-  // 只顯示圖示，避免文字被截斷看不完整；完整內容長按該日即可看到
-  const shown=events.slice(0,4);
+  // 用文字顯示（跟節日名稱一樣清楚），不用圖示，避免格子太小塞不下
+  const shown=events.slice(0,3);
   shown.forEach(e=>{
-    const chip=document.createElement('div');
-    chip.className='evt-chip cat-'+(e.cat||'other');
-    chip.textContent=e.icon||'📌';
-    chip.title=e.text||'';
-    slot.appendChild(chip);
+    const line=document.createElement('div');
+    line.className='evt-line cat-'+(e.cat||'other');
+    line.textContent=e.text||'';
+    slot.appendChild(line);
   });
-  if(events.length>4){
+  if(events.length>3){
     const more=document.createElement('div');
     more.className='evt-more';
-    more.textContent=`+${events.length-4}`;
+    more.textContent=`+${events.length-3} 項`;
     slot.appendChild(more);
   }
 }
@@ -786,10 +783,12 @@ document.getElementById('saveEventBtn').addEventListener('click',async()=>{
   EVENTS[dKey(y,m,d)]=events;
   const saved=await persistEvents();
   document.getElementById('textInput').value='';
-  refreshExistingList();
   const cellEl=findCellEl(y,m,d);
   if(cellEl) renderEventsIntoCell(cellEl,events);
   if(saved) scheduleForDate(y,m,d);
+  if(saved){
+    document.getElementById('dayOverlay').classList.add('hidden');
+  }
   showToast(saved?'已新增，前一天會自動通知':'新增失敗，請稍後再試');
 });
 
