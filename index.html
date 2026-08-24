@@ -174,12 +174,11 @@
     text-overflow:ellipsis;
   }
   .events-wrap{
-    margin-top:auto;
     display:flex;
     flex-direction:row;
     flex-wrap:wrap;
     gap:3px;
-    padding-top:2px;
+    margin-top:3px;
     overflow:hidden;
   }
   .evt-chip{
@@ -465,14 +464,21 @@ const CATS={
   other:{label:'其他',icon:'📌'}
 };
 
-/* ============ 儲存輔助（改為整包單一 key，大幅減少存取次數，避免頻率限制導致存檔失敗） ============ */
+/* ============ 儲存輔助（改用瀏覽器 localStorage） ============ */
+/* 注意：window.storage 只有在 Claude.ai 的 Artifact 預覽環境才存在；
+   這個檔案是要放到 GitHub Pages／自己網站上讓爸媽當作獨立網頁使用，
+   所以必須改用瀏覽器原生的 localStorage，才能真正把資料存在手機本機上。 */
 async function sGet(key){
-  try{ const r=await window.storage.get(key,false); return r?JSON.parse(r.value):null; }
-  catch(e){ return null; }
+  try{
+    const raw=localStorage.getItem(key);
+    return raw!=null ? JSON.parse(raw) : null;
+  }catch(e){ console.error('storage get fail',e); return null; }
 }
 async function sSet(key,val){
-  try{ await window.storage.set(key,JSON.stringify(val),false); return true; }
-  catch(e){ console.error('storage set fail',e); return false; }
+  try{
+    localStorage.setItem(key,JSON.stringify(val));
+    return true;
+  }catch(e){ console.error('storage set fail',e); return false; }
 }
 function dKey(y,m,d){ return `${y}-${m}-${d}`; }
 
