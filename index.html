@@ -176,25 +176,26 @@
   .events-wrap{
     margin-top:auto;
     display:flex;
-    flex-direction:column;
-    gap:2px;
+    flex-direction:row;
+    flex-wrap:wrap;
+    gap:3px;
     padding-top:2px;
     overflow:hidden;
   }
   .evt-chip{
-    font-size:clamp(.58rem,1.4vh,.78rem);
-    font-weight:700;
+    font-size:clamp(.85rem,2.1vh,1.15rem);
+    line-height:1;
     border-radius:7px;
-    padding:1px 5px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    padding:2px 4px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
   }
-  .evt-chip.cat-hospital{background:var(--hospital-bg);color:var(--hospital-text);}
-  .evt-chip.cat-hair{background:var(--hair-bg);color:var(--hair-text);}
-  .evt-chip.cat-bill{background:var(--bill-bg);color:var(--bill-text);}
-  .evt-chip.cat-other{background:var(--other-bg);color:var(--other-text);}
-  .evt-more{font-size:clamp(.55rem,1.3vh,.7rem);color:var(--ink-soft);font-weight:700;}
+  .evt-chip.cat-hospital{background:var(--hospital-bg);}
+  .evt-chip.cat-hair{background:var(--hair-bg);}
+  .evt-chip.cat-bill{background:var(--bill-bg);}
+  .evt-chip.cat-other{background:var(--other-bg);}
+  .evt-more{font-size:clamp(.55rem,1.3vh,.7rem);color:var(--ink-soft);font-weight:700;align-self:center;}
 
   /* Modal / bottom sheet */
   .overlay{
@@ -464,7 +465,7 @@ const CATS={
   other:{label:'其他',icon:'📌'}
 };
 
-/* ============ 儲存輔助 ============ */
+/* ============ 儲存輔助（改為整包單一 key，大幅減少存取次數，避免頻率限制導致存檔失敗） ============ */
 async function sGet(key){
   try{ const r=await window.storage.get(key,false); return r?JSON.parse(r.value):null; }
   catch(e){ return null; }
@@ -474,11 +475,33 @@ async function sSet(key,val){
   catch(e){ console.error('storage set fail',e); return false; }
 }
 function dKey(y,m,d){ return `${y}-${m}-${d}`; }
-async function getEvents(y,m,d){ return (await sGet('events:'+dKey(y,m,d))) || []; }
-async function setEvents(y,m,d,arr){ return sSet('events:'+dKey(y,m,d),arr); }
 
 const DEFAULT_SETTINGS={topic:'',hour:8,minute:0,lunarReminder:true};
-async function getSettings(){ const s=await sGet('settings'); return s?{...DEFAULT_SETTINGS,...s}:DEFAULT_SETTINGS; }
+
+// 記憶體快取：整個 app 只用三把 key（events / settings / notiflog），
+// 讀寫都在記憶體裡完成，最後才整包寫回，避免逐日逐格呼叫造成頻率限制而「新增失敗」。
+let EVENTS={};      // { "2026-8-27": [ {id,cat,icon,text}, ... ] }
+let SETTINGS={...DEFAULT_SETTINGS};
+let NOTIFLOG={};     // { "sched:2026-8-27": {...}, "schedLunar:2026-8-27": {...} }
+let dataLoaded=false;
+
+async function loadAllData(){
+  const [ev,st,nl]=await Promise.all([sGet('events'),sGet('settings'),sGet('notiflog')]);
+  EVENTS = ev || {};
+  SETTINGS = {...DEFAULT_SETTINGS, ...(st||{})};
+  NOTIFLOG = nl || {};
+  dataLoaded=true;
+}
+
+function getEvents(y,m,d){ return EVENTS[dKey(y,m,d)] || []; }
+async function persistEvents(){ return sSet('events',EVENTS); }
+
+function getSettings(){ return SETTINGS; }
+async function saveSettings(partial){
+  SETTINGS = {...SETTINGS, ...partial};
+  return sSet('settings',SETTINGS);
+}
+async function persistNotifLog(){ return sSet('notiflog',NOTIFLOG); }
 
 /* ============ ntfy 推播 ============ */
 function ntfyUrl(topic){
@@ -497,49 +520,75 @@ async function sendNtfy(topic,message,delaySeconds){
 
 const THREE_DAYS_MS=3*24*3600*1000;
 
-async function trySchedule(y,m,d){
-  const settings=await getSettings();
-  if(!settings.topic) return;
-  const events=await getEvents(y,m,d);
-  if(!events.length) return;
+function trySchedule(y,m,d){
+  const settings=getSettings();
+  if(!settings.topic) return null;
+  const events=getEvents(y,m,d);
+  if(!events.length) return null;
   const notifyDate=new Date(y,m-1,d);
   notifyDate.setDate(notifyDate.getDate()-1);
   notifyDate.setHours(settings.hour,settings.minute,0,0);
   const delayMs=notifyDate-new Date();
-  if(delayMs<10000||delayMs>THREE_DAYS_MS) return;
+  if(delayMs<10000||delayMs>THREE_DAYS_MS) return null;
   const content=events.map(e=>(e.icon||'')+e.text).join('、');
   const key='sched:'+dKey(y,m,d);
-  const prev=await sGet(key);
-  if(prev && prev.content===content) return;
-  const msg=`明天行程：${content}`;
-  const ok=await sendNtfy(settings.topic,msg,Math.floor(delayMs/1000));
-  if(ok) await sSet(key,{content,sentAt:Date.now()});
+  const prev=NOTIFLOG[key];
+  if(prev && prev.content===content) return null;
+  return {key,content,msg:`明天行程：${content}`,delaySeconds:Math.floor(delayMs/1000)};
 }
 
-async function tryLunarReminder(y,m,d){
-  const settings=await getSettings();
-  if(!settings.topic || !settings.lunarReminder) return;
+function tryLunarReminder(y,m,d){
+  const settings=getSettings();
+  if(!settings.topic || !settings.lunarReminder) return null;
   const lunar=solar2lunar(y,m,d);
-  if(!lunar || (lunar.lDay!==1 && lunar.lDay!==15)) return;
+  if(!lunar || (lunar.lDay!==1 && lunar.lDay!==15)) return null;
   const notifyDate=new Date(y,m-1,d);
   notifyDate.setDate(notifyDate.getDate()-1);
   notifyDate.setHours(settings.hour,settings.minute,0,0);
   const delayMs=notifyDate-new Date();
-  if(delayMs<10000||delayMs>THREE_DAYS_MS) return;
+  if(delayMs<10000||delayMs>THREE_DAYS_MS) return null;
   const key='schedLunar:'+dKey(y,m,d);
-  if(await sGet(key)) return;
+  if(NOTIFLOG[key]) return null;
   const label=lunar.lDay===1?'初一':'十五';
-  const ok=await sendNtfy(settings.topic,`明天是農曆${label}，別忘了準備喔`,Math.floor(delayMs/1000));
-  if(ok) await sSet(key,{sentAt:Date.now()});
+  return {key,msg:`明天是農曆${label}，別忘了準備喔`,delaySeconds:Math.floor(delayMs/1000)};
+}
+
+async function scheduleForDate(y,m,d){
+  const settings=getSettings();
+  if(!settings.topic) return;
+  const plan=trySchedule(y,m,d);
+  if(plan){
+    const ok=await sendNtfy(settings.topic,plan.msg,plan.delaySeconds);
+    if(ok){ NOTIFLOG[plan.key]={content:plan.content,sentAt:Date.now()}; await persistNotifLog(); }
+  }
+  const lunarPlan=tryLunarReminder(y,m,d);
+  if(lunarPlan){
+    const ok=await sendNtfy(settings.topic,lunarPlan.msg,lunarPlan.delaySeconds);
+    if(ok){ NOTIFLOG[lunarPlan.key]={sentAt:Date.now()}; await persistNotifLog(); }
+  }
 }
 
 async function syncAll(){
+  if(!dataLoaded) await loadAllData();
+  const settings=getSettings();
+  if(!settings.topic) return;
   const today=new Date();
+  let dirty=false;
   for(let i=0;i<=5;i++){
     const d=new Date(today); d.setDate(d.getDate()+i);
-    await trySchedule(d.getFullYear(),d.getMonth()+1,d.getDate());
-    await tryLunarReminder(d.getFullYear(),d.getMonth()+1,d.getDate());
+    const y=d.getFullYear(), m=d.getMonth()+1, day=d.getDate();
+    const plan=trySchedule(y,m,day);
+    if(plan){
+      const ok=await sendNtfy(settings.topic,plan.msg,plan.delaySeconds);
+      if(ok){ NOTIFLOG[plan.key]={content:plan.content,sentAt:Date.now()}; dirty=true; }
+    }
+    const lunarPlan=tryLunarReminder(y,m,day);
+    if(lunarPlan){
+      const ok=await sendNtfy(settings.topic,lunarPlan.msg,lunarPlan.delaySeconds);
+      if(ok){ NOTIFLOG[lunarPlan.key]={sentAt:Date.now()}; dirty=true; }
+    }
   }
+  if(dirty) await persistNotifLog();
 }
 
 /* ============ 時鐘 ============ */
@@ -560,6 +609,7 @@ let viewM=new Date().getMonth()+1; // 1-12
 const today=new Date();
 
 async function render(){
+  if(!dataLoaded) await loadAllData();
   document.getElementById('monthLabel').textContent=`${viewY}年${String(viewM).padStart(2,'0')}月`;
   const grid=document.getElementById('grid');
   grid.innerHTML='';
@@ -606,9 +656,7 @@ async function render(){
     cell.dataset.y=c.y; cell.dataset.m=c.m; cell.dataset.d=c.d;
     grid.appendChild(cell);
 
-    // load events async
-    getEvents(c.y,c.m,c.d).then(events=>renderEventsIntoCell(cell,events));
-
+    renderEventsIntoCell(cell, getEvents(c.y,c.m,c.d));
     attachLongPress(cell, c.y, c.m, c.d);
   }
 }
@@ -618,17 +666,19 @@ function renderEventsIntoCell(cell,events){
   if(!slot) return;
   slot.innerHTML='';
   if(!events || !events.length) return;
-  const shown=events.slice(0,2);
+  // 只顯示圖示，避免文字被截斷看不完整；完整內容長按該日即可看到
+  const shown=events.slice(0,4);
   shown.forEach(e=>{
     const chip=document.createElement('div');
     chip.className='evt-chip cat-'+(e.cat||'other');
-    chip.textContent=`${e.icon||''}${e.text}`;
+    chip.textContent=e.icon||'📌';
+    chip.title=e.text||'';
     slot.appendChild(chip);
   });
-  if(events.length>2){
+  if(events.length>4){
     const more=document.createElement('div');
     more.className='evt-more';
-    more.textContent=`+${events.length-2} 項`;
+    more.textContent=`+${events.length-4}`;
     slot.appendChild(more);
   }
 }
@@ -683,13 +733,13 @@ async function openDaySheet(y,m,d){
   document.getElementById('textInput').value='';
   document.getElementById('catSelect').value='hospital';
   updateIconPreview();
-  await refreshExistingList();
+  refreshExistingList();
   document.getElementById('dayOverlay').classList.remove('hidden');
 }
 
-async function refreshExistingList(){
+function refreshExistingList(){
   const {y,m,d}=currentDay;
-  const events=await getEvents(y,m,d);
+  const events=getEvents(y,m,d);
   const list=document.getElementById('existingList');
   list.innerHTML='';
   if(!events.length){
@@ -701,12 +751,13 @@ async function refreshExistingList(){
     row.className='existing-item cat-'+(e.cat||'other');
     row.innerHTML=`<span class="icon">${e.icon||''}</span><span class="txt">${e.text}</span><button data-id="${e.id}">🗑️</button>`;
     row.querySelector('button').addEventListener('click',async()=>{
-      const arr=(await getEvents(y,m,d)).filter(x=>x.id!==e.id);
-      await setEvents(y,m,d,arr);
-      await refreshExistingList();
+      const arr=getEvents(y,m,d).filter(x=>x.id!==e.id);
+      EVENTS[dKey(y,m,d)]=arr;
+      const saved=await persistEvents();
+      refreshExistingList();
       const cellEl=findCellEl(y,m,d);
       if(cellEl) renderEventsIntoCell(cellEl,arr);
-      showToast('已刪除');
+      showToast(saved?'已刪除':'刪除失敗，請稍後再試');
     });
     list.appendChild(row);
   });
@@ -724,20 +775,22 @@ document.getElementById('saveEventBtn').addEventListener('click',async()=>{
   if(!text){ showToast('請先輸入內容'); return; }
   const cat=document.getElementById('catSelect').value;
   const {y,m,d}=currentDay;
-  const events=await getEvents(y,m,d);
+  const events=getEvents(y,m,d).slice();
   events.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),cat,icon:CATS[cat].icon,text});
-  const saved=await setEvents(y,m,d,events);
+  EVENTS[dKey(y,m,d)]=events;
+  const saved=await persistEvents();
   document.getElementById('textInput').value='';
-  await refreshExistingList();
+  refreshExistingList();
   const cellEl=findCellEl(y,m,d);
   if(cellEl) renderEventsIntoCell(cellEl,events);
-  await trySchedule(y,m,d);
+  if(saved) scheduleForDate(y,m,d);
   showToast(saved?'已新增，前一天會自動通知':'新增失敗，請稍後再試');
 });
 
 /* ============ 設定 ============ */
 document.getElementById('openSettings').addEventListener('click',async()=>{
-  const s=await getSettings();
+  if(!dataLoaded) await loadAllData();
+  const s=getSettings();
   document.getElementById('ntfyTopicInput').value=s.topic||'';
   document.getElementById('notifyTimeInput').value=`${String(s.hour).padStart(2,'0')}:${String(s.minute).padStart(2,'0')}`;
   document.getElementById('lunarReminderCheck').checked=s.lunarReminder!==false;
@@ -750,36 +803,32 @@ document.getElementById('saveSettingsBtn').addEventListener('click',async()=>{
   const topic=document.getElementById('ntfyTopicInput').value.trim();
   const [hh,mm]=document.getElementById('notifyTimeInput').value.split(':').map(Number);
   const lunarReminder=document.getElementById('lunarReminderCheck').checked;
-  await sSet('settings',{topic,hour:hh||8,minute:mm||0,lunarReminder});
-  showToast('設定已儲存');
+  const saved=await saveSettings({topic,hour:hh||8,minute:mm||0,lunarReminder});
+  showToast(saved?'設定已儲存':'儲存失敗，請稍後再試');
   document.getElementById('settingsOverlay').classList.add('hidden');
   syncAll();
 });
 
 /* 自動儲存：主題名稱輸入完（失去焦點或停止輸入 600ms）就自動存到本機，不必按儲存鍵 */
 let topicSaveTimer=null;
-async function autoSaveField(partial){
-  const current=await getSettings();
-  await sSet('settings',{...current,...partial});
-}
 document.getElementById('ntfyTopicInput').addEventListener('input',()=>{
   clearTimeout(topicSaveTimer);
   topicSaveTimer=setTimeout(async()=>{
-    await autoSaveField({topic:document.getElementById('ntfyTopicInput').value.trim()});
-    showToast('主題名稱已自動儲存');
+    const ok=await saveSettings({topic:document.getElementById('ntfyTopicInput').value.trim()});
+    if(ok) showToast('主題名稱已自動儲存');
   },600);
 });
 document.getElementById('ntfyTopicInput').addEventListener('blur',async()=>{
   clearTimeout(topicSaveTimer);
-  await autoSaveField({topic:document.getElementById('ntfyTopicInput').value.trim()});
+  await saveSettings({topic:document.getElementById('ntfyTopicInput').value.trim()});
 });
 document.getElementById('notifyTimeInput').addEventListener('change',async()=>{
   const [hh,mm]=document.getElementById('notifyTimeInput').value.split(':').map(Number);
-  await autoSaveField({hour:hh||8,minute:mm||0});
+  await saveSettings({hour:hh||8,minute:mm||0});
   showToast('提醒時間已自動儲存');
 });
 document.getElementById('lunarReminderCheck').addEventListener('change',async()=>{
-  await autoSaveField({lunarReminder:document.getElementById('lunarReminderCheck').checked});
+  await saveSettings({lunarReminder:document.getElementById('lunarReminderCheck').checked});
 });
 
 /* ============ 備份 / 還原 ============ */
@@ -789,16 +838,8 @@ function backupFileName(){
 }
 document.getElementById('exportBackupBtn').addEventListener('click',async()=>{
   try{
-    const settings=await getSettings();
-    const events={};
-    let listResult=null;
-    try{ listResult=await window.storage.list('events:',false); }catch(e){ listResult=null; }
-    const keys=(listResult && listResult.keys) ? listResult.keys : [];
-    for(const k of keys){
-      const v=await sGet(k);
-      if(v) events[k]=v;
-    }
-    const payload={exportedAt:new Date().toISOString(),settings,events};
+    if(!dataLoaded) await loadAllData();
+    const payload={exportedAt:new Date().toISOString(),settings:SETTINGS,events:EVENTS};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
@@ -820,13 +861,9 @@ document.getElementById('importFileInput').addEventListener('change',async(e)=>{
   try{
     const text=await file.text();
     const payload=JSON.parse(text);
-    if(payload.settings) await sSet('settings',payload.settings);
-    if(payload.events){
-      for(const [k,v] of Object.entries(payload.events)){
-        await sSet(k,v);
-      }
-    }
-    const s=await getSettings();
+    if(payload.settings){ SETTINGS={...DEFAULT_SETTINGS,...payload.settings}; await sSet('settings',SETTINGS); }
+    if(payload.events){ EVENTS=payload.events; await sSet('events',EVENTS); }
+    const s=getSettings();
     document.getElementById('ntfyTopicInput').value=s.topic||'';
     document.getElementById('notifyTimeInput').value=`${String(s.hour).padStart(2,'0')}:${String(s.minute).padStart(2,'0')}`;
     document.getElementById('lunarReminderCheck').checked=s.lunarReminder!==false;
@@ -887,8 +924,11 @@ function showToast(msg){
 }
 
 /* ============ 啟動 ============ */
-render();
-syncAll();
+(async()=>{
+  await loadAllData();
+  await render();
+  syncAll();
+})();
 </script>
 </body>
 </html>
