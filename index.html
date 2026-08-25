@@ -9,23 +9,23 @@
 <link rel="icon" type="image/png" href="custom-icon.png">
 <style>
   :root{
-    --cream:#FFF8EF;
+    --cream:#FFF6EC;
     --card:#FFFFFF;
-    --plum:#7A4763;
-    --plum-dark:#5E3650;
-    --coral:#E1735A;
-    --coral-dark:#C85A42;
-    --sage:#7C9885;
-    --gold:#FBE3A0;
-    --gold-text:#8A6114;
-    --red:#D14343;
+    --plum:#8B4FA8;
+    --plum-dark:#5D3384;
+    --header-a:#FF7A59;
+    --header-b:#8B4FA8;
+    --coral:#FF6B4A;
+    --coral-dark:#E8502F;
+    --sage:#2FB380;
+    --gold:#FFE9B8;
+    --gold-text:#8A5A14;
+    --today-bg:#E9DBFB;
+    --today-border:#9B6FD1;
+    --red:#E23E3E;
     --ink:#3B2E35;
     --ink-soft:#7A6B72;
-    --line:#EFDFCB;
-    --hospital-bg:#DCEEFB; --hospital-text:#1F5C8B;
-    --hair-bg:#FBE1EC; --hair-text:#A73D6B;
-    --bill-bg:#E3F1DE; --bill-text:#3F7A34;
-    --other-bg:#EFEAF2; --other-text:#5E4A6B;
+    --line:#F3DFC7;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
@@ -41,9 +41,9 @@
     overflow:hidden;
   }
   .top{
-    background:linear-gradient(135deg,var(--plum),var(--plum-dark));
+    background:linear-gradient(135deg,var(--header-a),var(--header-b));
     color:#fff;
-    padding:12px 16px 14px;
+    padding:10px 16px 12px;
     border-radius:0 0 22px 22px;
     box-shadow:0 6px 18px rgba(94,54,80,.25);
     position:relative;
@@ -51,18 +51,30 @@
   }
   .top-row{display:flex;justify-content:space-between;align-items:flex-start;}
   .clock{
-    font-size:clamp(1.7rem,6.5vh,2.4rem);
+    font-size:clamp(1.6rem,5.8vh,2.2rem);
     font-weight:800;
     letter-spacing:1.5px;
     font-variant-numeric:tabular-nums;
     line-height:1;
   }
   .date-line{
-    font-size:clamp(.9rem,2.4vh,1.05rem);
-    margin-top:6px;
+    font-size:clamp(.9rem,2.2vh,1.02rem);
+    margin-top:5px;
     opacity:.95;
     font-weight:600;
   }
+  .today-yiji{
+    margin-top:4px;
+    font-size:clamp(.72rem,1.9vh,.85rem);
+    font-weight:700;
+    background:rgba(255,255,255,.16);
+    border-radius:10px;
+    padding:4px 9px;
+    display:inline-flex;
+    gap:10px;
+    cursor:pointer;
+  }
+  .today-yiji b{font-weight:900;margin-right:2px;}
   .settings-btn{
     background:rgba(255,255,255,.18);
     border:none;
@@ -143,10 +155,10 @@
     touch-action:manipulation;
   }
   .day-cell.other-month{opacity:.35;}
-  .day-cell.holiday{background:var(--gold);border-color:#EFCB6E;}
-  .day-cell.today{outline:3px solid var(--coral);outline-offset:-3px;}
+  .day-cell.holiday{background:var(--gold);border-color:#F0DFAE;}
+  .day-cell.today{background:var(--today-bg);border-color:var(--today-border);}
   .day-num{
-    font-size:clamp(.95rem,2.6vh,1.35rem);
+    font-size:clamp(.85rem,2.3vh,1.2rem);
     font-weight:800;
     color:var(--ink);
     line-height:1;
@@ -177,23 +189,21 @@
   .events-wrap{
     display:flex;
     flex-direction:column;
-    gap:1px;
+    gap:2px;
     margin-top:3px;
     overflow:hidden;
   }
   .evt-line{
-    font-size:clamp(.56rem,1.35vh,.78rem);
+    font-size:clamp(.6rem,1.5vh,.85rem);
     font-weight:800;
-    line-height:1.18;
+    line-height:1.22;
+    border-radius:6px;
+    padding:1px 5px;
     display:-webkit-box;
-    -webkit-line-clamp:2;
+    -webkit-line-clamp:3;
     -webkit-box-orient:vertical;
     overflow:hidden;
   }
-  .evt-line.cat-hospital{color:var(--hospital-text);}
-  .evt-line.cat-hair{color:var(--hair-text);}
-  .evt-line.cat-bill{color:var(--bill-text);}
-  .evt-line.cat-other{color:var(--other-text);}
   .evt-more{font-size:clamp(.53rem,1.2vh,.68rem);color:var(--ink-soft);font-weight:700;}
   .day-cell.selected{
     outline:3px solid var(--plum);
@@ -232,13 +242,40 @@
     margin-bottom:4px;
   }
   .sheet-sub{color:var(--ink-soft);font-size:.95rem;margin-bottom:14px;}
+  .lunar-card{
+    background:linear-gradient(135deg,#FBF3DF,#FCEAC6);
+    border:1px solid #F0DBA0;
+    border-radius:18px;
+    padding:14px 16px;
+    margin-bottom:16px;
+  }
+  .lunar-card-year{
+    font-size:1.02rem;font-weight:700;color:var(--gold-text);opacity:.85;
+  }
+  .lunar-card-day{
+    font-size:1.9rem;font-weight:800;color:#6B4A0E;margin-top:2px;line-height:1.15;
+  }
+  .lunar-card-red{color:var(--red);font-size:1rem;font-weight:800;}
+  .lunar-card-holiday{
+    font-size:1.05rem;font-weight:800;color:#B23A3A;margin-top:6px;
+  }
+  .yiji-row{display:flex;gap:8px;margin-top:10px;}
+  .yiji-block{
+    flex:1;border-radius:12px;padding:8px 10px;font-size:.95rem;font-weight:700;line-height:1.4;
+  }
+  .yiji-block.yi{background:#DFF3E6;color:#1F7A4D;}
+  .yiji-block.ji{background:#FBE1DE;color:#B23A2B;}
+  .yiji-label{
+    display:inline-block;font-size:1.05rem;font-weight:900;margin-right:6px;
+    background:rgba(255,255,255,.55);border-radius:8px;padding:0 6px;
+  }
+  .yiji-note{font-size:.72rem;color:var(--ink-soft);margin-top:8px;font-weight:600;}
   .existing-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
   .existing-item{
     display:flex;align-items:center;gap:10px;
-    background:#FBF6EF;border-radius:14px;padding:10px 12px;
-    font-size:1.05rem;font-weight:600;
+    border-radius:14px;padding:10px 12px;
+    font-size:1.05rem;font-weight:700;
   }
-  .existing-item .icon{font-size:1.4rem;}
   .existing-item .txt{flex:1;}
   .existing-item button{
     border:none;background:none;font-size:1.3rem;cursor:pointer;padding:4px 8px;
@@ -256,18 +293,6 @@
     color:var(--ink);
     font-family:inherit;
   }
-  .icon-preview{
-    display:flex;align-items:center;gap:10px;margin-top:8px;font-size:1.1rem;color:var(--ink-soft);
-  }
-  .icon-preview span.big{font-size:2rem;}
-  #textInput.cat-hospital{background:var(--hospital-bg);color:var(--hospital-text);border-color:var(--hospital-text);}
-  #textInput.cat-hair{background:var(--hair-bg);color:var(--hair-text);border-color:var(--hair-text);}
-  #textInput.cat-bill{background:var(--bill-bg);color:var(--bill-text);border-color:var(--bill-text);}
-  #textInput.cat-other{background:var(--other-bg);color:var(--other-text);border-color:var(--other-text);}
-  .existing-item.cat-hospital{background:var(--hospital-bg);color:var(--hospital-text);}
-  .existing-item.cat-hair{background:var(--hair-bg);color:var(--hair-text);}
-  .existing-item.cat-bill{background:var(--bill-bg);color:var(--bill-text);}
-  .existing-item.cat-other{background:var(--other-bg);color:var(--other-text);}
   .btn-row{display:flex;gap:10px;margin-top:20px;}
   .btn{
     flex:1;
@@ -308,6 +333,7 @@
     <div>
       <div class="clock" id="clock">--:--:--</div>
       <div class="date-line" id="dateLine">—</div>
+      <div class="today-yiji" id="todayYijiLine"></div>
     </div>
     <button class="settings-btn" id="openSettings" aria-label="設定">⚙️</button>
   </div>
@@ -330,18 +356,18 @@
   <div class="sheet">
     <div class="btn-close"><button id="closeDaySheet">✕</button></div>
     <div class="sheet-title" id="dayTitle">日期</div>
-    <div class="sheet-sub" id="daySub"></div>
+
+    <div class="lunar-card" id="lunarCard">
+      <div class="lunar-card-year" id="lunarYearLine"></div>
+      <div class="lunar-card-day" id="lunarDayLine"></div>
+      <div class="lunar-card-holiday" id="lunarHolidayLine"></div>
+      <div class="yiji-row">
+        <div class="yiji-block yi"><span class="yiji-label">宜</span><span id="yiText"></span></div>
+        <div class="yiji-block ji"><span class="yiji-label">忌</span><span id="jiText"></span></div>
+      </div>
+    </div>
 
     <div class="existing-list" id="existingList"></div>
-
-    <label class="field-label">新增項目類別</label>
-    <select id="catSelect">
-      <option value="hospital">🏥 醫院（回診）</option>
-      <option value="hair">💇 美髮</option>
-      <option value="bill">💰 繳費</option>
-      <option value="other">📌 其他</option>
-    </select>
-    <div class="icon-preview"><span class="big" id="iconPreview">🏥</span><span id="catPreviewLabel">醫院</span></div>
 
     <label class="field-label">內容文字</label>
     <input type="text" id="textInput" placeholder="請輸入內容，例如：回診拿藥">
@@ -359,6 +385,7 @@
     <div class="btn-close"><button id="closeSettingsSheet">✕</button></div>
     <div class="sheet-title">通知設定</div>
     <div class="sheet-sub">設定 ntfy 主題名稱，前一天會自動發送提醒到爸媽的手機（請先在手機安裝 ntfy App 並訂閱相同主題）。</div>
+
 
     <label class="field-label">ntfy 主題名稱（topic）</label>
     <input type="text" id="ntfyTopicInput" placeholder="例如：chen-family-cal-7788">
@@ -503,13 +530,51 @@ function getHoliday(y,m,d){
   return holidaysCache[y][key]||null;
 }
 
-/* ============ 類別設定 ============ */
-const CATS={
-  hospital:{label:'醫院（回診）',icon:'🏥'},
-  hair:{label:'美髮',icon:'💇'},
-  bill:{label:'繳費',icon:'💰'},
-  other:{label:'其他',icon:'📌'}
+/* ============ 每筆新增項目自動輪流換色，父母不用自己選類別 ============ */
+const PALETTE=[
+  {bg:'#FFE0D6',text:'#C1432B'},
+  {bg:'#D6F0E0',text:'#1F7A4D'},
+  {bg:'#D8E8FB',text:'#1F5C8B'},
+  {bg:'#FBE1EC',text:'#A73D6B'},
+  {bg:'#F1E1FB',text:'#7A3FA8'},
+  {bg:'#FFF0C2',text:'#8A6114'},
+  {bg:'#DDEFD1',text:'#4F7A22'},
+  {bg:'#D6F5F0',text:'#12746A'}
+];
+function nextColor(){
+  const idx=(SETTINGS.colorCounter||0)%PALETTE.length;
+  SETTINGS.colorCounter=(SETTINGS.colorCounter||0)+1;
+  return idx;
+}
+
+/* ============ 簡易黃曆：建除十二值日（宜／忌），僅供傳統參考，非精準命理 ============ */
+function dayGanZhiIndex(y,m,d){
+  const diff=Math.round((Date.UTC(y,m-1,d)-Date.UTC(1900,0,1))/86400000);
+  return ((10+diff)%60+60)%60;
+}
+const JIANCHU=['建','除','滿','平','定','執','破','危','成','收','開','閉'];
+const JIANCHU_YI={
+  '建':['祭祀','祈福','出行'], '除':['掃除','求醫','理髮'], '滿':['祭祀','開市','嫁娶'],
+  '平':['修造','整理雜物'], '定':['嫁娶','簽約','入宅'], '執':['修造','栽種','動土'],
+  '破':['拆卸','清理舊物'], '危':['祭祀','祈福，宜謹慎'], '成':['嫁娶','開市','入宅'],
+  '收':['納財','收款','簽約'], '開':['開市','出行','動土'], '閉':['安葬','修造']
 };
+const JIANCHU_JI={
+  '建':['動土','開市'], '除':['嫁娶','開市'], '滿':['動土','安葬'],
+  '平':['開市','嫁娶'], '定':['興訟','遠行'], '執':['開市','遠行'],
+  '破':['嫁娶','出行，簽約'], '危':['登高','搭乘交通工具'], '成':['興訟'],
+  '收':['開市','出行'], '開':['安葬'], '閉':['開市','嫁娶']
+};
+function getYiJi(y,m,d){
+  const lunar=solar2lunar(y,m,d);
+  if(!lunar) return null;
+  const monthBranch=(lunar.lMonth+1)%12;
+  const dayIdx=dayGanZhiIndex(y,m,d);
+  const dayBranch=dayIdx%12;
+  const officerIdx=((dayBranch-monthBranch)%12+12)%12;
+  const officer=JIANCHU[officerIdx];
+  return {officer, yi:JIANCHU_YI[officer], ji:JIANCHU_JI[officer]};
+}
 
 /* ============ 儲存輔助（改用瀏覽器 localStorage） ============ */
 /* 注意：window.storage 只有在 Claude.ai 的 Artifact 預覽環境才存在；
@@ -529,7 +594,7 @@ async function sSet(key,val){
 }
 function dKey(y,m,d){ return `${y}-${m}-${d}`; }
 
-const DEFAULT_SETTINGS={topic:'',hour:8,minute:0,lunarReminder:true};
+const DEFAULT_SETTINGS={topic:'',hour:8,minute:0,lunarReminder:true,colorCounter:0};
 
 // 記憶體快取：整個 app 只用三把 key（events / settings / notiflog），
 // 讀寫都在記憶體裡完成，最後才整包寫回，避免逐日逐格呼叫造成頻率限制而「新增失敗」。
@@ -583,7 +648,7 @@ function trySchedule(y,m,d){
   notifyDate.setHours(settings.hour,settings.minute,0,0);
   const delayMs=notifyDate-new Date();
   if(delayMs<10000||delayMs>THREE_DAYS_MS) return null;
-  const content=events.map(e=>(e.icon||'')+e.text).join('、');
+  const content=events.map(e=>e.text).join('、');
   const key='sched:'+dKey(y,m,d);
   const prev=NOTIFLOG[key];
   if(prev && prev.content===content) return null;
@@ -645,6 +710,7 @@ async function syncAll(){
 }
 
 /* ============ 時鐘 ============ */
+let lastClockDateStr=null;
 function updateClock(){
   const now=new Date();
   const hh=String(now.getHours()).padStart(2,'0');
@@ -653,6 +719,19 @@ function updateClock(){
   document.getElementById('clock').textContent=`${hh}:${mm}:${ss}`;
   const wd=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][now.getDay()];
   document.getElementById('dateLine').textContent=`${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${wd}`;
+  const dateStr=`${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+  if(dateStr!==lastClockDateStr){
+    lastClockDateStr=dateStr;
+    renderTodayYiji(now.getFullYear(),now.getMonth()+1,now.getDate());
+  }
+}
+function renderTodayYiji(y,m,d){
+  const el=document.getElementById('todayYijiLine');
+  if(!el) return;
+  const yj=getYiJi(y,m,d);
+  if(!yj){ el.innerHTML=''; return; }
+  el.innerHTML=`<span><b>宜</b>${yj.yi.slice(0,2).join('、')}</span><span><b>忌</b>${yj.ji.slice(0,2).join('、')}</span>`;
+  el.onclick=()=>openDaySheet(y,m,d);
 }
 setInterval(updateClock,1000); updateClock();
 
@@ -715,16 +794,23 @@ async function render(){
   }
 }
 
+function colorOf(e){
+  const idx=(typeof e.colorIdx==='number')?e.colorIdx:0;
+  return PALETTE[idx%PALETTE.length];
+}
+
 function renderEventsIntoCell(cell,events){
   const slot=cell.querySelector('[data-slot]');
   if(!slot) return;
   slot.innerHTML='';
   if(!events || !events.length) return;
-  // 用文字顯示（跟節日名稱一樣清楚），不用圖示，避免格子太小塞不下
   const shown=events.slice(0,3);
   shown.forEach(e=>{
+    const c=colorOf(e);
     const line=document.createElement('div');
-    line.className='evt-line cat-'+(e.cat||'other');
+    line.className='evt-line';
+    line.style.background=c.bg;
+    line.style.color=c.text;
     line.textContent=e.text||'';
     slot.appendChild(line);
   });
@@ -776,15 +862,16 @@ function clearSelectedCell(){
   if(selectedCellEl){ selectedCellEl.classList.remove('selected'); selectedCellEl=null; }
 }
 
-function updateIconPreview(){
-  const cat=document.getElementById('catSelect').value;
-  document.getElementById('iconPreview').textContent=CATS[cat].icon;
-  document.getElementById('catPreviewLabel').textContent=CATS[cat].label;
-  const input=document.getElementById('textInput');
-  input.className='';
-  input.classList.add('cat-'+cat);
+const TIANGAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const DIZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const ZODIAC=['鼠','牛','虎','兔','龍','蛇','馬','羊','猴','雞','狗','豬'];
+function ganZhiYear(lY){
+  const idx=(lY-4+6000)%60;
+  return TIANGAN[idx%10]+DIZHI[idx%12];
 }
-document.getElementById('catSelect').addEventListener('change',updateIconPreview);
+function zodiacYear(lY){
+  return ZODIAC[(lY-4+6000)%12];
+}
 
 async function openDaySheet(y,m,d){
   currentDay={y,m,d};
@@ -794,10 +881,23 @@ async function openDaySheet(y,m,d){
   const wd=['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()];
   const lunar=solar2lunar(y,m,d);
   document.getElementById('dayTitle').textContent=`${y}年${m}月${d}日（星期${wd}）`;
-  document.getElementById('daySub').textContent = lunar ? `農曆${(lunar.isLeap?'閏':'')+['正','二','三','四','五','六','七','八','九','十','冬','腊'][lunar.lMonth-1]}月${dayCn(lunar.lDay)}` : '';
+
+  if(lunar){
+    const monthName=(lunar.isLeap?'閏':'')+['正','二','三','四','五','六','七','八','九','十','冬','腊'][lunar.lMonth-1]+'月';
+    document.getElementById('lunarYearLine').textContent=`農曆${ganZhiYear(lunar.lYear)}年（生肖：${zodiacYear(lunar.lYear)}）`;
+    document.getElementById('lunarDayLine').innerHTML=`${monthName}${dayCn(lunar.lDay)}${(lunar.lDay===1||lunar.lDay===15)?' <span class="lunar-card-red">（拜拜日）</span>':''}`;
+  } else {
+    document.getElementById('lunarYearLine').textContent='';
+    document.getElementById('lunarDayLine').textContent='';
+  }
+  const hol=getHoliday(y,m,d);
+  document.getElementById('lunarHolidayLine').textContent = hol ? `🏮 ${hol}` : '';
+
+  const yj=getYiJi(y,m,d);
+  document.getElementById('yiText').textContent = yj ? yj.yi.join('、') : '—';
+  document.getElementById('jiText').textContent = yj ? yj.ji.join('、') : '—';
+
   document.getElementById('textInput').value='';
-  document.getElementById('catSelect').value='hospital';
-  updateIconPreview();
   refreshExistingList();
   document.getElementById('dayOverlay').classList.remove('hidden');
 }
@@ -813,8 +913,11 @@ function refreshExistingList(){
   }
   events.forEach(e=>{
     const row=document.createElement('div');
-    row.className='existing-item cat-'+(e.cat||'other');
-    row.innerHTML=`<span class="icon">${e.icon||''}</span><span class="txt">${e.text}</span><button data-id="${e.id}">🗑️</button>`;
+    const c=colorOf(e);
+    row.className='existing-item';
+    row.style.background=c.bg;
+    row.style.color=c.text;
+    row.innerHTML=`<span class="txt">${e.text}</span><button data-id="${e.id}">🗑️</button>`;
     row.querySelector('button').addEventListener('click',async()=>{
       const arr=getEvents(y,m,d).filter(x=>x.id!==e.id);
       EVENTS[dKey(y,m,d)]=arr;
@@ -840,12 +943,13 @@ document.getElementById('cancelAddBtn').addEventListener('click',()=>{
 document.getElementById('saveEventBtn').addEventListener('click',async()=>{
   const text=document.getElementById('textInput').value.trim();
   if(!text){ showToast('請先輸入內容'); return; }
-  const cat=document.getElementById('catSelect').value;
   const {y,m,d}=currentDay;
   const events=getEvents(y,m,d).slice();
-  events.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),cat,icon:CATS[cat].icon,text});
+  const colorIdx=nextColor();
+  events.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),colorIdx,text});
   EVENTS[dKey(y,m,d)]=events;
   const saved=await persistEvents();
+  if(saved) await sSet('settings',SETTINGS); // 順便存下輪替顏色的計數器
   document.getElementById('textInput').value='';
   const cellEl=findCellEl(y,m,d);
   if(cellEl) renderEventsIntoCell(cellEl,events);
@@ -964,21 +1068,34 @@ document.getElementById('nextBtn').addEventListener('click',()=>{
 
 /* ============ 按鍵音 ============ */
 let audioCtx=null;
+function ensureAudioCtx(){
+  if(!audioCtx){
+    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ audioCtx=null; }
+  }
+  if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); }
+  return audioCtx;
+}
 function playClick(){
   try{
-    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==='suspended') audioCtx.resume();
-    const osc=audioCtx.createOscillator();
-    const gain=audioCtx.createGain();
-    osc.type='sine';
-    osc.frequency.value=880;
-    gain.gain.setValueAtTime(0.18,audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.09);
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    const ctx=ensureAudioCtx();
+    if(!ctx) return;
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type='triangle';
+    osc.frequency.setValueAtTime(1000,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(700,ctx.currentTime+0.09);
+    gain.gain.setValueAtTime(0.001,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.35,ctx.currentTime+0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.13);
+    osc.connect(gain); gain.connect(ctx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime+0.1);
+    osc.stop(ctx.currentTime+0.14);
   }catch(e){ /* audio not available, ignore */ }
 }
+// iOS 等瀏覽器需要在使用者第一次觸控時才能解鎖音效播放權限
+['touchstart','click'].forEach(evt=>{
+  document.addEventListener(evt,()=>ensureAudioCtx(),{once:true,passive:true});
+});
 document.addEventListener('click',e=>{
   if(e.target.closest('button')) playClick();
 },true);
