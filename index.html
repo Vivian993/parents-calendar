@@ -650,8 +650,9 @@ function trySchedule(y,m,d){
   if(delayMs<10000||delayMs>THREE_DAYS_MS) return null;
   const content=events.map(e=>e.text).join('、');
   const key='sched:'+dKey(y,m,d);
-  const prev=NOTIFLOG[key];
-  if(prev && prev.content===content) return null;
+  // 只要這一天已經排過提醒，不管後來內容怎麼改，都不再重排——
+  // 因為 ntfy 沒辦法取消已經排定的舊提醒，重排只會讓舊的、新的都準時送達，變成重複通知
+  if(NOTIFLOG[key]) return null;
   return {key,content,msg:`明天行程：${content}`,delaySeconds:Math.floor(delayMs/1000)};
 }
 
